@@ -1,0 +1,89 @@
+"""
+Main orchestration script for customer segmentation pipeline.
+"""
+import os
+import pandas as pd
+from src.data_loader import load_data
+from src.preprocessing import clean_data, encode_features, scale_features
+from src.feature_engineering import create_features
+from src.clustering import (
+    apply_kmeans,
+    apply_hierarchical,
+    apply_dbscan,
+    apply_gmm,
+    find_optimal_clusters
+)
+from src.evaluation import evaluate_clustering, compare_algorithms
+from src.visualization import (
+    plot_elbow,
+    plot_silhouette,
+    plot_pca_clusters,
+    plot_tsne_clusters,
+    plot_cluster_profiles
+)
+from src.insights import generate_business_insights
+
+def main():
+    print("=== Customer Segmentation Pipeline ===")
+    
+    # 1. Load data
+    df = load_data("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    
+    # 2. Preprocess
+    df_clean = clean_data(df)
+    df_encoded = encode_features(df_clean)
+    X_scaled, scaler = scale_features(df_encoded)
+    
+    # 3. Feature engineering (optional additional features)
+    X_scaled = create_features(X_scaled, df_encoded)  # returns same if no new features
+    
+    # 4. Find optimal number of clusters (for K-Means)
+    print("\n[1/7] Finding optimal clusters...")
+    find_optimal_clusters(X_scaled, max_k=10)
+    
+    # 5. Apply clustering algorithms
+    print("\n[2/7] Applying K-Means...")
+    kmeans_labels, kmeans_model = apply_kmeans(X_scaled, n_clusters=4)
+    
+    print("[3/7] Applying Hierarchical...")
+    hier_labels = apply_hierarchical(X_scaled, n_clusters=4)
+    
+    print("[4/7] Applying DBSCAN...")
+    dbscan_labels = apply_dbscan(X_scaled, eps=0.5, min_samples=5)
+    
+    print("[5/7] Applying GMM...")
+    gmm_labels, gmm_model = apply_gmm(X_scaled, n_components=4)
+    
+    # 6. Evaluate and compare
+    print("\n[6/7] Evaluating clusters...")
+    results = compare_algorithms(
+        X_scaled,
+        [kmeans_labels, hier_labels, dbscan_labels, gmm_labels],
+        ["K-Means", "Hierarchical", "DBSCAN", "GMM"]
+    )
+    print("\nComparison Results:")
+    print(results)
+    
+    # 7. Visualize clusters
+    print("\n[7/7] Generating visualizations...")
+    os.makedirs("results", exist_ok=True)
+    
+    # PCA plot
+    plot_pca_clusters(X_scaled, kmeans_labels, save_path="results/clusters_2d_pca.png")
+    # t-SNE plot
+    plot_tsne_clusters(X_scaled, kmeans_labels, save_path="results/clusters_2d_tsne.png")
+    # Cluster profiles
+    df_with_cluster = df_encoded.copy()
+    df_with_cluster['Cluster'] = kmeans_labels
+    plot_cluster_profiles(df_with_cluster, save_path="results/cluster_profiles.csv")
+    
+    # 8. Business insights
+    print("\n=== Business Insights ===")
+    insights = generate_business_insights(df_with_cluster, kmeans_labels)
+    for key, value in insights.items():
+        print(f"{key}: {value}")
+    
+    print("\nPipeline completed. Results saved in 'results/' folder.")
+
+if __name__ == "__main__":
+    main()
