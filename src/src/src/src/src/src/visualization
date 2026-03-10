@@ -1,0 +1,41 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import pandas as pd
+import numpy as np
+
+def plot_pca_clusters(X, labels, save_path=None):
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X)
+    plt.figure(figsize=(8,6))
+    scatter = plt.scatter(X_pca[:,0], X_pca[:,1], c=labels, cmap='viridis', alpha=0.6)
+    plt.colorbar(scatter)
+    plt.title('PCA Projection of Clusters')
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+    if save_path:
+        plt.savefig(save_path)
+    plt.show()
+
+def plot_tsne_clusters(X, labels, save_path=None):
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30)
+    X_tsne = tsne.fit_transform(X)
+    plt.figure(figsize=(8,6))
+    scatter = plt.scatter(X_tsne[:,0], X_tsne[:,1], c=labels, cmap='viridis', alpha=0.6)
+    plt.colorbar(scatter)
+    plt.title('t-SNE Projection of Clusters')
+    plt.xlabel('t-SNE 1')
+    plt.ylabel('t-SNE 2')
+    if save_path:
+        plt.savefig(save_path)
+    plt.show()
+
+def plot_cluster_profiles(df_with_cluster, save_path=None):
+    """Calculate mean of features per cluster and save to CSV."""
+    cluster_profile = df_with_cluster.groupby('Cluster').mean()
+    print("Cluster Profiles (mean values):")
+    print(cluster_profile)
+    if save_path:
+        cluster_profile.to_csv(save_path)
+    return cluster_profile
