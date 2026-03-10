@@ -1,0 +1,18 @@
+import pandas as pd
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+
+def evaluate_clustering(X, labels, algo_name):
+    """Return dictionary of metrics."""
+    if len(set(labels)) < 2:
+        return {'Algorithm': algo_name, 'Silhouette': -1, 'Davies-Bouldin': -1, 'Calinski-Harabasz': -1}
+    sil = silhouette_score(X, labels)
+    db = davies_bouldin_score(X, labels)
+    ch = calinski_harabasz_score(X, labels)
+    return {'Algorithm': algo_name, 'Silhouette': sil, 'Davies-Bouldin': db, 'Calinski-Harabasz': ch}
+
+def compare_algorithms(X, labels_list, algo_names):
+    results = []
+    for labels, name in zip(labels_list, algo_names):
+        results.append(evaluate_clustering(X, labels, name))
+    df = pd.DataFrame(results)
+    return df
