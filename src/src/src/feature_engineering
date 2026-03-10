@@ -1,0 +1,11 @@
+import numpy as np
+
+def create_features(X_scaled, original_df):
+    """
+    Create additional features if desired.
+    Here we could add tenure groups, average monthly spend, etc.
+    But since scaling already includes all original features, we can return as is.
+    """
+    # Example: add interaction between tenure and monthly charges? 
+    # However, that would require re-scaling. For simplicity, we skip.
+    return X_scaled
