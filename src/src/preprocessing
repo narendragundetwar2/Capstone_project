@@ -1,0 +1,41 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+def clean_data(df):
+    """Handle missing values and data type issues."""
+    df = df.copy()
+    # TotalCharges should be numeric, convert (some blanks become NaN)
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+    # Drop rows with missing TotalCharges (only a few)
+    df.dropna(subset=['TotalCharges'], inplace=True)
+    # Drop customerID (not a feature)
+    df.drop('customerID', axis=1, inplace=True)
+    return df
+
+def encode_features(df):
+    """Encode categorical variables."""
+    df = df.copy()
+    # Binary columns: convert Yes/No to 1/0
+    binary_cols = ['gender', 'Partner', 'Dependents', 'PhoneService', 'PaperlessBilling', 'Churn']
+    # For gender: Male=1, Female=0
+    df['gender'] = df['gender'].map({'Male': 1, 'Female': 0})
+    for col in ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling', 'Churn']:
+        df[col] = df[col].map({'Yes': 1, 'No': 0})
+    
+    # Multi-category columns: one-hot encode
+    multi_cat_cols = ['MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup',
+                       'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies',
+                       'Contract', 'PaymentMethod']
+    df = pd.get_dummies(df, columns=multi_cat_cols, drop_first=True)
+    
+    # SeniorCitizen is already 0/1
+    return df
+
+def scale_features(df):
+    """Scale numerical features."""
+    # Select numerical columns (all except target if we kept it, but we keep all)
+    # We'll scale all columns, but ensure they are numeric
+    X = df.drop('Churn', axis=1)  # we don't need Churn for unsupervised, but keep for later analysis
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, scaler
