@@ -1,0 +1,66 @@
+import pandas as pd
+import numpy as np
+
+def generate_business_insights(df, labels):
+    """
+    Produce actionable business recommendations per cluster.
+    """
+    df = df.copy()
+    df['Cluster'] = labels
+    
+    # If original Churn column exists, we can use it for insights
+    churn_col = 'Churn' if 'Churn' in df.columns else None
+    
+    # Basic cluster stats
+    cluster_stats = df.groupby('Cluster').agg({
+        'MonthlyCharges': 'mean',
+        'TotalCharges': 'mean',
+        'tenure': 'mean',
+        'SeniorCitizen': 'mean',
+        'gender': 'mean',  # proportion of males
+        'Churn': 'mean' if churn_col else None
+    }).round(2)
+    
+    print("\nCluster Statistics:")
+    print(cluster_stats)
+    
+    # Determine highest revenue segment
+    highest_revenue_cluster = cluster_stats['TotalCharges'].idxmax()
+    highest_revenue_value = cluster_stats.loc[highest_revenue_cluster, 'TotalCharges']
+    
+    # Highest spending (monthly)
+    highest_monthly_cluster = cluster_stats['MonthlyCharges'].idxmax()
+    
+    # Churn risk (if Churn available)
+    if churn_col:
+        high_risk_cluster = cluster_stats['Churn'].idxmax()
+        churn_rate = cluster_stats.loc[high_risk_cluster, 'Churn']
+    else:
+        high_risk_cluster = None
+        churn_rate = None
+    
+    # Generate recommendations
+    insights = {}
+    insights['highest_revenue_cluster'] = f"Cluster {highest_revenue_cluster} (avg total charges: {highest_revenue_value})"
+    insights['highest_monthly_spenders'] = f"Cluster {highest_monthly_cluster}"
+    if high_risk_cluster:
+        insights['highest_churn_risk'] = f"Cluster {high_risk_cluster} (churn rate: {churn_rate:.2%})"
+    
+    insights['marketing_strategies'] = {}
+    for cluster in df['Cluster'].unique():
+        profile = cluster_stats.loc[cluster]
+        if cluster == highest_revenue_cluster:
+            strat = "Premium loyalty program, exclusive offers"
+        elif cluster == highest_monthly_cluster:
+            strat = "Upsell additional services, bundle discounts"
+        elif high_risk_cluster and cluster == high_risk_cluster:
+            strat = "Retention campaign: contract renewal incentives, personalized outreach"
+        elif profile['tenure'] < 12:
+            strat = "Engage early: welcome series, product education"
+        elif profile['SeniorCitizen'] > 0.5:
+            strat = "Senior-friendly plans, simplified communication"
+        else:
+            strat = "Standard cross-sell and reactivation campaigns"
+        insights['marketing_strategies'][f"Cluster {cluster}"] = strat
+    
+    return insights
